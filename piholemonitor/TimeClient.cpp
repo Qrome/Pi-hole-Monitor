@@ -41,7 +41,7 @@ void TimeClient::updateTime() {
 
   // This will send the request to the server
   client.print(String("GET / HTTP/1.1\r\n") +
-               String("Host: www.google.com\r\n") +
+               String("Host: " + String(ntpServerName) + "\r\n") +
                String("Connection: close\r\n\r\n"));
   int repeatCounter = 0;
   while(!client.available() && repeatCounter < 10) {
