@@ -71,7 +71,6 @@ void PiHoleClient::getPiHoleData(String server, int port) {
   Serial.println();
 }
 
-
 void PiHoleClient::getGraphData(String server, int port) {
   
   HTTPClient http;

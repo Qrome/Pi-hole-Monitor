@@ -30,7 +30,7 @@ SOFTWARE.
 /******************************************************************************
  * NOTE: The settings here are the default settings for the first loading.  
  * After loading you will manage changes to the settings via the Web Interface.  
- * If you want to change settings again in the settings.h, you will need to 
+ * If you want to change settings again in the Settings.h, you will need to 
  * erase the file system on the Wemos or use the “Reset Settings” option in 
  * the Web Interface.
  ******************************************************************************/
@@ -43,8 +43,6 @@ SOFTWARE.
 #include <ESP8266HTTPUpdateServer.h>
 #include "TimeClient.h"
 #include "PiHoleClient.h"
-#include "OpenWeatherMapClient.h"
-#include "WeatherStationFonts.h"
 #include "FS.h"
 #include "SH1106Wire.h"
 #include "SSD1306Wire.h"
@@ -57,15 +55,6 @@ SOFTWARE.
 String PiHoleServer = "";   // IP or Address of your Pi-Hole Server (DO NOT include http://)
 int PiHolePort = 80;        // the port you are running (usually 80);
 
-// Weather Configuration
-boolean DISPLAYWEATHER = true; // true = show weather when not printing / false = no weather
-String WeatherApiKey = ""; // Your API Key from http://openweathermap.org/
-// Default City Location (use http://openweathermap.org/find to find city ID)
-int CityIDs[] = { 5304391 }; //Only USE ONE for weather marquee
-boolean IS_METRIC = false; // false = Imperial and true = Metric
-// Languages: ar, bg, ca, cz, de, el, en, fa, fi, fr, gl, hr, hu, it, ja, kr, la, lt, mk, nl, pl, pt, ro, ru, se, sk, sl, es, tr, ua, vi, zh_cn, zh_tw
-String WeatherLanguage = "en";  //Default (en) English
-
 // Webserver Settings for this monitoring device
 const int WEBSERVER_PORT = 80; // The port you can access this device on over HTTP
 const boolean WEBSERVER_ENABLED = true;  // Device will provide a web interface via http://[ip]:[port]/
@@ -76,7 +65,7 @@ char* www_password = "password";  // Password for the Web Interface
 // Date and Time
 float UtcOffset = -7; // Hour offset from GMT for your timezone
 boolean IS_24HOUR = false;     // 23:00 millitary 24 hour clock
-int minutesBetweenDataRefresh = 15; // this is minutes between refreshing Weather and Clock only
+int minutesBetweenDataRefresh = 15; // this is minutes between refreshing Clock only
 
 // Display Settings
 const int I2C_DISPLAY_ADDRESS = 0x3c; // I2C Address of your Display (usually 0x3c or 0x3d)

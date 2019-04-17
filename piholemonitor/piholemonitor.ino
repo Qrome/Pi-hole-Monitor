@@ -58,15 +58,11 @@ void drawScreen2(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int
 void drawScreen3(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
 void graphScreen(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
 void drawHeaderOverlay(OLEDDisplay *display, OLEDDisplayUiState* state);
-void drawClock(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
-void drawWeather(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
 void drawClockHeaderOverlay(OLEDDisplay *display, OLEDDisplayUiState* state);
 
 // Set the number of Frames supported
 const int numberOfFrames = 4;
 FrameCallback frames[numberOfFrames];
-FrameCallback clockFrame[2];
-boolean isClockOn = false;
 
 OverlayCallback overlays[] = { drawHeaderOverlay };
 OverlayCallback clockOverlay[] = { drawClockHeaderOverlay };
@@ -85,9 +81,6 @@ boolean displayOn = true;
 // Pi-hole Client
 PiHoleClient piholeClient;
 
-// Weather Client
-OpenWeatherMapClient weatherClient(WeatherApiKey, CityIDs, 1, IS_METRIC, WeatherLanguage);
-
 //declairing prototypes
 void configModeCallback (WiFiManager *myWiFiManager);
 int8_t getWifiQuality();
@@ -97,7 +90,6 @@ ESP8266HTTPUpdateServer serverUpdater;
 
 String WEB_ACTIONS =  "<a class='w3-bar-item w3-button' href='/'><i class='fa fa-home'></i> Home</a>"
                       "<a class='w3-bar-item w3-button' href='/configure'><i class='fa fa-cog'></i> Configure</a>"
-                      "<a class='w3-bar-item w3-button' href='/configureweather'><i class='fa fa-cloud'></i> Weather</a>"
                       "<a class='w3-bar-item w3-button' href='/systemreset' onclick='return confirm(\"Do you want to reset to default settings?\")'><i class='fa fa-undo'></i> Reset Settings</a>"
                       "<a class='w3-bar-item w3-button' href='/forgetwifi' onclick='return confirm(\"Do you want to forget to WiFi connection?\")'><i class='fa fa-wifi'></i> Forget WiFi</a>"
                       "<a class='w3-bar-item w3-button' href='/update'><i class='fa fa-wrench'></i> Firmware Update</a>"
@@ -117,51 +109,6 @@ String THEME_FORM =   "<p>Theme Color <select class='w3-option w3-padding' name=
                       "<p><label>User ID (for this interface)</label><input class='w3-input w3-border w3-margin-bottom' type='text' name='userid' value='%USERID%' maxlength='20'></p>"
                       "<p><label>Password </label><input class='w3-input w3-border w3-margin-bottom' type='password' name='stationpassword' value='%STATIONPASSWORD%'></p>"
                       "<button class='w3-button w3-block w3-grey w3-section w3-padding' type='submit'>Save</button></form>";
-
-String WEATHER_FORM = "<form class='w3-container' action='/updateweatherconfig' method='get'><h2>Weather Config:</h2>"
-                      "<p><input name='isWeatherEnabled' class='w3-check w3-margin-top' type='checkbox' %IS_WEATHER_CHECKED%> Display Weather</p>"
-                      "<label>OpenWeatherMap API Key (get from <a href='https://openweathermap.org/' target='_BLANK'>here</a>)</label>"
-                      "<input class='w3-input w3-border w3-margin-bottom' type='text' name='openWeatherMapApiKey' value='%WEATHERKEY%' maxlength='60'>"
-                      "<p><label>%CITYNAME1% (<a href='http://openweathermap.org/find' target='_BLANK'><i class='fa fa-search'></i> Search for City ID</a>) "
-                      "<input class='w3-input w3-border w3-margin-bottom' type='text' name='city1' value='%CITY1%' onkeypress='return isNumberKey(event)'></p>"
-                      "<p><input name='metric' class='w3-check w3-margin-top' type='checkbox' %METRIC%> Use Metric (Celsius)</p>"
-                      "<p>Weather Language <select class='w3-option w3-padding' name='language'>%LANGUAGEOPTIONS%</select></p>"
-                      "<button class='w3-button w3-block w3-grey w3-section w3-padding' type='submit'>Save</button></form>"
-                      "<script>function isNumberKey(e){var h=e.which?e.which:event.keyCode;return!(h>31&&(h<48||h>57))}</script>";
-
-String LANG_OPTIONS = "<option>ar</option>"
-                      "<option>bg</option>"
-                      "<option>ca</option>"
-                      "<option>cz</option>"
-                      "<option>de</option>"
-                      "<option>el</option>"
-                      "<option>en</option>"
-                      "<option>fa</option>"
-                      "<option>fi</option>"
-                      "<option>fr</option>"
-                      "<option>gl</option>"
-                      "<option>hr</option>"
-                      "<option>hu</option>"
-                      "<option>it</option>"
-                      "<option>ja</option>"
-                      "<option>kr</option>"
-                      "<option>la</option>"
-                      "<option>lt</option>"
-                      "<option>mk</option>"
-                      "<option>nl</option>"
-                      "<option>pl</option>"
-                      "<option>pt</option>"
-                      "<option>ro</option>"
-                      "<option>ru</option>"
-                      "<option>se</option>"
-                      "<option>sk</option>"
-                      "<option>sl</option>"
-                      "<option>es</option>"
-                      "<option>tr</option>"
-                      "<option>ua</option>"
-                      "<option>vi</option>"
-                      "<option>zh_cn</option>"
-                      "<option>zh_tw</option>";
 
 String COLOR_THEMES = "<option>red</option>"
                       "<option>pink</option>"
@@ -244,8 +191,6 @@ void setup() {
   frames[1] = drawScreen2;
   frames[2] = drawScreen3;
   frames[3] = graphScreen;
-  clockFrame[0] = drawClock;
-  clockFrame[1] = drawWeather;
   ui.setOverlays(overlays, numberOfOverlays);
   
   // Inital UI takes care of initalising the display too.
@@ -289,9 +234,7 @@ void setup() {
     server.on("/systemreset", handleSystemReset);
     server.on("/forgetwifi", handleWifiReset);
     server.on("/updateconfig", handleUpdateConfig);
-    server.on("/updateweatherconfig", handleUpdateWeather);
     server.on("/configure", handleConfigure);
-    server.on("/configureweather", handleWeatherConfigure);
     server.onNotFound(redirectHome);
     serverUpdater.setup(&server, "/update", www_username, www_password);
     // Start the server
@@ -337,6 +280,7 @@ void loop() {
     ledOnOff(true);
     lastMinute = timeClient.getMinutes(); // reset the check value
     piholeClient.getPiHoleData(PiHoleServer, PiHolePort);
+    piholeClient.getGraphData(PiHoleServer, PiHolePort);
     ledOnOff(false);
   }
 
@@ -356,19 +300,10 @@ void getUpdateTime() {
   ledOnOff(true); // turn on the LED
   Serial.println();
 
-  if (displayOn && DISPLAYWEATHER) {
-    Serial.println("Getting Weather Data...");
-    weatherClient.updateWeather();
-  }
-
   Serial.println("Updating Time...");
-  //Update the Time
   timeClient.updateTime();
   lastEpoch = timeClient.getCurrentEpoch();
   Serial.println("Local time: " + timeClient.getAmPmFormattedTime());
-
-  Serial.println("Get Pi-hole Graph Data...");
-  piholeClient.getGraphData(PiHoleServer, PiHolePort);
   
   ledOnOff(false);  // turn off the LED
 }
@@ -389,22 +324,6 @@ void handleSystemReset() {
     redirectHome();
     ESP.restart();
   }
-}
-
-void handleUpdateWeather() {
-  if (!authentication()) {
-    return server.requestAuthentication();
-  }
-  DISPLAYWEATHER = server.hasArg("isWeatherEnabled");
-  WeatherApiKey = server.arg("openWeatherMapApiKey");
-  CityIDs[0] = server.arg("city1").toInt();
-  IS_METRIC = server.hasArg("metric");
-  WeatherLanguage = server.arg("language");
-  writeSettings();
-  isClockOn = false; // this will force a check for the display
-  checkDisplay();
-  lastEpoch = 0;
-  redirectHome();
 }
 
 void handleUpdateConfig() {
@@ -448,48 +367,6 @@ void handleWifiReset() {
   WiFiManager wifiManager;
   wifiManager.resetSettings();
   ESP.restart();
-}
-
-void handleWeatherConfigure() {
-  if (!authentication()) {
-    return server.requestAuthentication();
-  }
-  ledOnOff(true);
-  String html = "";
-
-  server.sendHeader("Cache-Control", "no-cache, no-store");
-  server.sendHeader("Pragma", "no-cache");
-  server.sendHeader("Expires", "-1");
-  server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-  server.send(200, "text/html", "");
-
-  html = getHeader();
-  server.sendContent(html);
-  
-  String form = WEATHER_FORM;
-  String isWeatherChecked = "";
-  if (DISPLAYWEATHER) {
-    isWeatherChecked = "checked='checked'";
-  }
-  form.replace("%IS_WEATHER_CHECKED%", isWeatherChecked);
-  form.replace("%WEATHERKEY%", WeatherApiKey);
-  form.replace("%CITYNAME1%", weatherClient.getCity(0));
-  form.replace("%CITY1%", String(CityIDs[0]));
-  String checked = "";
-  if (IS_METRIC) {
-    checked = "checked='checked'";
-  }
-  form.replace("%METRIC%", checked);
-  String options = LANG_OPTIONS;
-  options.replace(">"+String(WeatherLanguage)+"<", " selected>"+String(WeatherLanguage)+"<");
-  form.replace("%LANGUAGEOPTIONS%", options);
-  server.sendContent(form);
-  
-  html = getFooter();
-  server.sendContent(html);
-  server.sendContent("");
-  server.client().stop();
-  ledOnOff(false);
 }
 
 void handleConfigure() {
@@ -613,7 +490,7 @@ String getHeader(boolean refresh) {
   html += "<nav class='w3-sidebar w3-bar-block w3-card' style='margin-top:88px' id='mySidebar'>";
   html += "<div class='w3-container w3-theme-d2'>";
   html += "<span onclick='closeSidebar()' class='w3-button w3-display-topright w3-large'><i class='fa fa-times'></i></span>";
-  html += "<div class='w3-cell w3-left w3-xxxlarge' style='width:60px'><i class='fa fa-cube'></i></div>";
+  html += "<div class='w3-cell w3-left w3-xxxlarge' style='width:60px'><i class='fa fa-wifi'></i></div>";
   html += "<div class='w3-padding'>Menu</div></div>";
   html += menu;
   html += "</nav>";
@@ -679,31 +556,7 @@ void displayMainStatus() {
 
   server.sendContent(html); // spit out what we got
   html = "";
-  
-  if (DISPLAYWEATHER) {
-    if (weatherClient.getCity(0) == "") {
-      html += "<p>Please <a href='/configureweather'>Configure Weather</a> API</p>";
-      if (weatherClient.getError() != "") {
-        html += "<p>Weather Error: <strong>" + weatherClient.getError() + "</strong></p>";
-      }
-    } else {
-      html += "<div class='w3-cell-row' style='width:100%'><h2>" + weatherClient.getCity(0) + ", " + weatherClient.getCountry(0) + "</h2></div><div class='w3-cell-row'>";
-      html += "<div class='w3-cell w3-left w3-medium' style='width:120px'>";
-      html += "<img src='http://openweathermap.org/img/w/" + weatherClient.getIcon(0) + ".png' alt='" + weatherClient.getDescription(0) + "'><br>";
-      html += weatherClient.getHumidity(0) + "% Humidity<br>";
-      html += weatherClient.getWind(0) + " <span class='w3-tiny'>" + getSpeedSymbol() + "</span> Wind<br>";
-      html += "</div>";
-      html += "<div class='w3-cell w3-container' style='width:100%'><p>";
-      html += weatherClient.getCondition(0) + " (" + weatherClient.getDescription(0) + ")<br>";
-      html += weatherClient.getTempRounded(0) + getTempSymbol(true) + "<br>";
-      html += "<a href='https://www.google.com/maps/@" + weatherClient.getLat(0) + "," + weatherClient.getLon(0) + ",10000m/data=!3m1!1e3' target='_BLANK'><i class='fa fa-map-marker' style='color:red'></i> Map It!</a><br>";
-      html += "</p></div></div>";
-    }
-    
-    server.sendContent(html); // spit out what we got
-    html = ""; // fresh start
-  }
-
+ 
   server.sendContent(String(getFooter()));
   server.sendContent("");
   server.client().stop();
@@ -800,58 +653,6 @@ void graphScreen(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int
   }
 }
 
-void drawClock(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y) {
-  display->setTextAlignment(TEXT_ALIGN_CENTER);
-  
-  String displayTime = timeClient.getAmPmHours() + ":" + timeClient.getMinutes() + ":" + timeClient.getSeconds();
-  if (IS_24HOUR) {
-    displayTime = timeClient.getHours() + ":" + timeClient.getMinutes() + ":" + timeClient.getSeconds(); 
-  }
-  String displayName = "Pi-hole";
-  display->setFont(ArialMT_Plain_16);
-  display->drawString(64 + x, 0 + y, displayName);
-  display->setFont(ArialMT_Plain_24);
-  display->drawString(64 + x, 17 + y, displayTime);
-}
-
-void drawWeather(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y) {
-  display->setTextAlignment(TEXT_ALIGN_LEFT);
-  display->setFont(ArialMT_Plain_24);
-  display->drawString(0 + x, 0 + y, weatherClient.getTempRounded(0) + getTempSymbol());
-  display->setTextAlignment(TEXT_ALIGN_LEFT);
-  display->setFont(ArialMT_Plain_24);
-
-  display->setFont(ArialMT_Plain_16);
-  display->drawString(0 + x, 24 + y, weatherClient.getCondition(0));
-  display->setFont((const uint8_t*)Meteocons_Plain_42);
-  display->drawString(86 + x, 0 + y, weatherClient.getWeatherIcon(0));
-}
-
-String getTempSymbol() {
-  return getTempSymbol(false);
-}
-
-String getTempSymbol(boolean forHTML) {
-  String rtnValue = "F";
-  if (IS_METRIC) {
-    rtnValue = "C";
-  }
-  if (forHTML) {
-    rtnValue = "&#176;" + rtnValue;
-  } else {
-    rtnValue = "°" + rtnValue;
-  }
-  return rtnValue;
-}
-
-String getSpeedSymbol() {
-  String rtnValue = "mph";
-  if (IS_METRIC) {
-    rtnValue = "kph";
-  }
-  return rtnValue;
-}
-
 String zeroPad(int value) {
   String rtnValue = String(value);
   if (value < 10) {
@@ -879,12 +680,11 @@ void drawHeaderOverlay(OLEDDisplay *display, OLEDDisplayUiState* state) {
   display->setFont(ArialMT_Plain_16);
   display->setTextAlignment(TEXT_ALIGN_LEFT);
   String percent = String(piholeClient.getAdsPercentageToday()) + "%";
-  display->drawString(64, 48, percent);
+  display->drawString(60, 48, percent);
   
   // Draw indicator to show next update
   int updatePos = (piholeClient.getAdsPercentageToday().toFloat() / float(100)) * 128;
-  display->drawRect(0, 41, 128, 6);
-  display->drawHorizontalLine(0, 42, updatePos);
+  display->drawRect(0, 42, 128, 5);
   display->drawHorizontalLine(0, 43, updatePos);
   display->drawHorizontalLine(0, 44, updatePos);
   display->drawHorizontalLine(0, 45, updatePos);
@@ -918,8 +718,6 @@ void drawClockHeaderOverlay(OLEDDisplay *display, OLEDDisplayUiState* state) {
 }
 
 void drawRssi(OLEDDisplay *display) {
-
- 
   int8_t quality = getWifiQuality();
   for (int8_t i = 0; i < 4; i++) {
     for (int8_t j = 0; j < 3 * (i + 2); j++) {
@@ -942,7 +740,6 @@ int8_t getWifiQuality() {
   }
 }
 
-
 void writeSettings() {
   // Save decoded message to SPIFFS file for playback on power up.
   File f = SPIFFS.open(CONFIG, "w");
@@ -961,11 +758,6 @@ void writeSettings() {
     f.println("is24hour=" + String(IS_24HOUR));
     f.println("invertDisp=" + String(INVERT_DISPLAY));
     f.println("USE_FLASH=" + String(USE_FLASH));
-    f.println("isWeather=" + String(DISPLAYWEATHER));
-    f.println("weatherKey=" + WeatherApiKey);
-    f.println("CityID=" + String(CityIDs[0]));
-    f.println("isMetric=" + String(IS_METRIC));
-    f.println("language=" + String(WeatherLanguage));
   }
   f.close();
   readSettings();
@@ -1033,35 +825,9 @@ void readSettings() {
       USE_FLASH = line.substring(line.lastIndexOf("USE_FLASH=") + 10).toInt();
       Serial.println("USE_FLASH=" + String(USE_FLASH));
     }
-    if (line.indexOf("isWeather=") >= 0) {
-      DISPLAYWEATHER = line.substring(line.lastIndexOf("isWeather=") + 10).toInt();
-      Serial.println("DISPLAYWEATHER=" + String(DISPLAYWEATHER));
-    }
-    if (line.indexOf("weatherKey=") >= 0) {
-      WeatherApiKey = line.substring(line.lastIndexOf("weatherKey=") + 11);
-      WeatherApiKey.trim();
-      Serial.println("WeatherApiKey=" + WeatherApiKey);
-    }
-    if (line.indexOf("CityID=") >= 0) {
-      CityIDs[0] = line.substring(line.lastIndexOf("CityID=") + 7).toInt();
-      Serial.println("CityID: " + String(CityIDs[0]));
-    }
-    if (line.indexOf("isMetric=") >= 0) {
-      IS_METRIC = line.substring(line.lastIndexOf("isMetric=") + 9).toInt();
-      Serial.println("IS_METRIC=" + String(IS_METRIC));
-    }
-    if (line.indexOf("language=") >= 0) {
-      WeatherLanguage = line.substring(line.lastIndexOf("language=") + 9);
-      WeatherLanguage.trim();
-      Serial.println("WeatherLanguage=" + WeatherLanguage);
-    }
   }
   fr.close();
   piholeClient.getPiHoleData(PiHoleServer, PiHolePort);
-  weatherClient.updateWeatherApiKey(WeatherApiKey);
-  weatherClient.updateLanguage(WeatherLanguage);
-  weatherClient.setMetric(IS_METRIC);
-  weatherClient.updateCityIdList(CityIDs, 1);
   timeClient.setUtcOffset(UtcOffset);
 }
 
