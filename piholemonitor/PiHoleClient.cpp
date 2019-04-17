@@ -28,12 +28,57 @@ PiHoleClient::PiHoleClient() {
 }
 
 void PiHoleClient::getPiHoleData(String server, int port) {
+
+  errorMessage = "";
+  
+  String apiGetData = "GET /admin/api.php?summary HTTP/1.1";
+  WiFiClient dataClient = getSubmitRequest(apiGetData, server, port);
+  if (errorMessage != "") {
+    Serial.println(errorMessage);
+    return;
+  }
+
+  const size_t bufferSize = 2*JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(17) + 470;
+  DynamicJsonBuffer jsonBuffer(bufferSize);
+
+  // Parse JSON object
+  JsonObject& root = jsonBuffer.parseObject(dataClient);
+  if (!root.success()) {
+    errorMessage = "Data Summary Parsing failed: http://" + String(server) + ":" + String(port) + "/admin/api.php?summary";
+    Serial.println(errorMessage);
+    return;
+  }
+
+  piHoleData.domains_being_blocked = (const char*)root["domains_being_blocked"];
+  piHoleData.dns_queries_today = (const char*)root["dns_queries_today"];
+  piHoleData.ads_blocked_today = (const char*)root["ads_blocked_today"];
+  piHoleData.ads_percentage_today = (const char*)root["ads_percentage_today"];
+  piHoleData.unique_domains = (const char*)root["unique_domains"];
+  piHoleData.queries_forwarded = (const char*)root["queries_forwarded"];
+  piHoleData.queries_cached = (const char*)root["queries_cached"];
+  piHoleData.clients_ever_seen = (const char*)root["clients_ever_seen"];
+  piHoleData.unique_clients = (const char*)root["unique_clients"];
+  piHoleData.dns_queries_all_types = (const char*)root["dns_queries_all_types"];
+  piHoleData.reply_NODATA = (const char*)root["reply_NODATA"];
+  piHoleData.reply_NXDOMAIN = (const char*)root["reply_NXDOMAIN"];
+  piHoleData.reply_CNAME = (const char*)root["reply_CNAME"];
+  piHoleData.reply_IP = (const char*)root["reply_IP"];
+  piHoleData.privacy_level = (const char*)root["privacy_level"];
+  piHoleData.piHoleStatus = (const char*)root["status"];
+
+  Serial.println("Pi-Hole Status: " + piHoleData.piHoleStatus);
+  Serial.println("Todays Percentage Blocked: " + piHoleData.ads_percentage_today);
+  Serial.println();
+}
+
+
+void PiHoleClient::getGraphData(String server, int port) {
   
   HTTPClient http;
   
-  String apiGetData = "http://" + server + ":" + String(port) + "/admin/api.php?summary";
+  String apiGetData = "http://" + server + ":" + String(port) + "/admin/api.php?overTimeData10mins";
 
-  Serial.println("Getting Pi-Hole Data");
+  Serial.println("Getting Pi-Hole Graph Data");
   Serial.println(apiGetData);
   http.begin(apiGetData);
   int httpCode = http.GET();
@@ -75,12 +120,12 @@ void PiHoleClient::getPiHoleData(String server, int port) {
     Serial.println();
     return;
   }
-  //Clean dirty results
-  //result.remove(0, result.indexOf("{"));
-  //result.remove(result.lastIndexOf("}") + 1);
-  Serial.println("Results:");
-  Serial.println(result);
-  Serial.println("End");
+
+  // Remove half of the stuff -- it is too large to parse
+  result = result.substring(result.indexOf("\"ads_over_time"));
+  result = "{" + result;
+
+  //Serial.println("Modified: " + result);
 
   char jsonArray [result.length()+1];
   result.toCharArray(jsonArray,sizeof(jsonArray));
@@ -89,31 +134,67 @@ void PiHoleClient::getPiHoleData(String server, int port) {
   JsonObject& root = json_buf.parseObject(jsonArray);
 
   if (!root.success()) {
-    errorMessage = "Pi-Hole Data Parsing failed!";
+    errorMessage = "Data Parsing failed: http://" + String(server) + ":" + String(port) + "/admin/api.php?overTimeData10mins";
     Serial.println(errorMessage);
     return;
   }
   
-  piHoleData.domains_being_blocked = (const char*)root["domains_being_blocked"];
-  piHoleData.dns_queries_today = (const char*)root["dns_queries_today"];
-  piHoleData.ads_blocked_today = (const char*)root["ads_blocked_today"];
-  piHoleData.ads_percentage_today = (const char*)root["ads_percentage_today"];
-  piHoleData.unique_domains = (const char*)root["unique_domains"];
-  piHoleData.queries_forwarded = (const char*)root["queries_forwarded"];
-  piHoleData.queries_cached = (const char*)root["queries_cached"];
-  piHoleData.clients_ever_seen = (const char*)root["clients_ever_seen"];
-  piHoleData.unique_clients = (const char*)root["unique_clients"];
-  piHoleData.dns_queries_all_types = (const char*)root["dns_queries_all_types"];
-  piHoleData.reply_NODATA = (const char*)root["reply_NODATA"];
-  piHoleData.reply_NXDOMAIN = (const char*)root["reply_NXDOMAIN"];
-  piHoleData.reply_CNAME = (const char*)root["reply_CNAME"];
-  piHoleData.reply_IP = (const char*)root["reply_IP"];
-  piHoleData.privacy_level = (const char*)root["privacy_level"];
-  piHoleData.piHoleStatus = (const char*)root["status"];
+  JsonObject& ads = root["ads_over_time"];
+  int count = 0;
+  for (JsonPair p : ads) {
+    blocked[count] = p.value.as<int>();
+    if (blocked[count] > blockedHigh) {
+      blockedHigh = blocked[count];
+    }
+    //Serial.println("Pi-hole Graph point (" + String(count+1) + "): " + String(blocked[count]));
+    count++;
+  }
+  blockedCount = count;
 
-  Serial.println("Pi-Hole Status: " + piHoleData.piHoleStatus);
-  Serial.println("Todays Percentage Blocked: " + piHoleData.ads_percentage_today);
-  Serial.println();
+  Serial.println("High Value: " + String(blockedHigh));
+  Serial.println("Count: " + String(blockedCount));
+  
+}
+
+WiFiClient PiHoleClient::getSubmitRequest(String apiGetData, String myServer, int myPort) {
+  WiFiClient dataClient;
+  dataClient.setTimeout(5000);
+
+  Serial.println("Getting Data via GET");
+  Serial.println(apiGetData);
+  errorMessage = "";
+  if (dataClient.connect(myServer, myPort)) {  //starts client connection, checks for connection
+    dataClient.println(apiGetData);
+    dataClient.println("Host: " + String(myServer) + ":" + String(myPort));
+    dataClient.println("User-Agent: ArduinoWiFi/1.1");
+    dataClient.println("Connection: close");
+    if (dataClient.println() == 0) {
+      errorMessage = "Connection to " + String(myServer) + ":" + String(myPort) + " failed.";
+      //resetPrintData();
+      return dataClient;
+    }
+  } 
+  else {
+    errorMessage = "Connection failed: " + String(myServer) + ":" + String(myPort);
+    //resetPrintData();
+    return dataClient;
+  }
+
+  // Check HTTP status
+  char status[32] = {0};
+  dataClient.readBytesUntil('\r', status, sizeof(status));
+  if (strcmp(status, "HTTP/1.1 200 OK") != 0 && strcmp(status, "HTTP/1.1 409 CONFLICT") != 0) {
+    errorMessage = "Unexpected response: " + String(status);
+    return dataClient;
+  }
+
+  // Skip HTTP headers
+  char endOfHeaders[] = "\r\n\r\n";
+  if (!dataClient.find(endOfHeaders)) {
+    errorMessage = "Invalid response from " + String(myServer) + ":" + String(myPort);
+  }
+
+  return dataClient;
 }
 
 String PiHoleClient::getDomainsBeingBlocked() {
@@ -159,4 +240,16 @@ String PiHoleClient::getPiHoleStatus() {
 
 String PiHoleClient::getError() {
   return errorMessage;
+}
+
+int *PiHoleClient::getBlockedAds() {
+  return blocked;
+}
+
+int PiHoleClient::getBlockedCount() {
+  return blockedCount;
+}
+
+int PiHoleClient::getBlockedHigh() {
+  return blockedHigh;
 }

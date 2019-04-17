@@ -56,13 +56,14 @@ void drawOtaProgress(unsigned int, unsigned int);
 void drawScreen1(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
 void drawScreen2(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
 void drawScreen3(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
+void graphScreen(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
 void drawHeaderOverlay(OLEDDisplay *display, OLEDDisplayUiState* state);
 void drawClock(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
 void drawWeather(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
 void drawClockHeaderOverlay(OLEDDisplay *display, OLEDDisplayUiState* state);
 
 // Set the number of Frames supported
-const int numberOfFrames = 3;
+const int numberOfFrames = 4;
 FrameCallback frames[numberOfFrames];
 FrameCallback clockFrame[2];
 boolean isClockOn = false;
@@ -242,6 +243,7 @@ void setup() {
   frames[0] = drawScreen1;
   frames[1] = drawScreen2;
   frames[2] = drawScreen3;
+  frames[3] = graphScreen;
   clockFrame[0] = drawClock;
   clockFrame[1] = drawWeather;
   ui.setOverlays(overlays, numberOfOverlays);
@@ -365,6 +367,9 @@ void getUpdateTime() {
   lastEpoch = timeClient.getCurrentEpoch();
   Serial.println("Local time: " + timeClient.getAmPmFormattedTime());
 
+  Serial.println("Get Pi-hole Graph Data...");
+  piholeClient.getGraphData(PiHoleServer, PiHolePort);
+  
   ledOnOff(false);  // turn off the LED
 }
 
@@ -778,6 +783,21 @@ void drawScreen3(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int
   display->setFont(ArialMT_Plain_24);
 
   display->drawString(64 + x, 14 + y, piholeClient.getAdsBlockedToday());
+}
+
+void graphScreen(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y) {
+  int count = piholeClient.getBlockedCount();
+  int high = piholeClient.getBlockedHigh();
+  int row = 127;
+  int yval = 0;
+  for (int inx = count; inx >= (count - 128); inx--) {
+    yval = map(piholeClient.getBlockedAds()[inx], high, 0, 0, 40);
+    display->drawLine(row + x, yval + y, row + x, 39 + y);
+    if (row == 0) {
+      break;
+    }
+    row--;
+  }
 }
 
 void drawClock(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y) {
