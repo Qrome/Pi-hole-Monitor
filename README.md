@@ -24,11 +24,12 @@ SOFTWARE.
 # Pi-hole Monitor
 
 ## Features:
-* Display Pi-Hole Statistics (
+* Display Pi-Hole Statistics
 * Total Blocked
 * Total Clients
 * Percentage Blocked
 * Blocked Ads Graph from the last 21.33 hours of data (only 128 lines to show 10 min incriments)
+* Top 3 Clients Blocked
 * Option to display 24 hour or AM/PM style clock
 * Sample rate is every 60 seconds
 * Fully configurable from the web interface (not required to edit Settings.h)
@@ -82,7 +83,8 @@ ArduinoOTA.h  --> Arduino OTA Library
 
 ## Initial Configuration
 All settings may be managed from the Web Interface, however, you may update the **Settings.h** file manually only the first time loading -- but it is not required.  
-* You only need to add the address and port for your Pi-hole Server (via web interface).  
+* Add the address and port for your Pi-hole Server (via web interface).
+* Add the Pi-hole API Token from Pi-hole &rarr; Settings &rarr; API/Web interface.
 
 NOTE: The settings in the Settings.h are the default settings for the first loading. After loading you will manage changes to the settings via the Web Interface. If you want to change settings again in the Settings.h, you will need to erase the file system on the Wemos or use the “Reset Settings” option in the Web Interface.  
 
