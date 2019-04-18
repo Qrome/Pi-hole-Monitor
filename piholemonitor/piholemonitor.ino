@@ -57,11 +57,12 @@ void drawScreen1(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int
 void drawScreen2(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
 void drawScreen3(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
 void graphScreen(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
+void drawClientsBlocked(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
 void drawHeaderOverlay(OLEDDisplay *display, OLEDDisplayUiState* state);
 void drawClockHeaderOverlay(OLEDDisplay *display, OLEDDisplayUiState* state);
 
 // Set the number of Frames supported
-const int numberOfFrames = 4;
+const int numberOfFrames = 5;
 FrameCallback frames[numberOfFrames];
 
 OverlayCallback overlays[] = { drawHeaderOverlay };
@@ -98,6 +99,8 @@ String WEB_ACTIONS =  "<a class='w3-bar-item w3-button' href='/'><i class='fa fa
 String CHANGE_FORM =  "<form class='w3-container' action='/updateconfig' method='get'><h2>Station Config:</h2>"
                       "<p><label>Pi-hole Address (do not include http://)</label><input class='w3-input w3-border w3-margin-bottom' type='text' name='piholeAddress' id='piholeAddress' value='%PIHOLEADDRESS%' maxlength='60'></p>"
                       "<p><label>Pi-hole Port</label><input class='w3-input w3-border w3-margin-bottom' type='text' name='piholePort' id='piholePort' value='%PIHOLEPORT%' maxlength='5'  onkeypress='return isNumberKey(event)'></p>"
+                      "<p><label>Pi-hole API Token (from Pi-hole &rarr; Settings &rarr; API/Web interface)</label>"
+                      "<input class='w3-input w3-border w3-margin-bottom' type='text' name='apiToken' id='apiToken' value='%APITOKEN%' maxlength='65'></p>"
                       "<input type='button' value='Test Connection and API JSON Response' onclick='testPiHole()'><p id='PiHoleTest'></p>"
                       "<p><input name='is24hour' class='w3-check w3-margin-top' type='checkbox' %IS_24HOUR_CHECKED%> Use 24 Hour Clock (military time)</p>"
                       "<p><input name='invDisp' class='w3-check w3-margin-top' type='checkbox' %IS_INVDISP_CHECKED%> Flip display orientation</p>"
@@ -191,6 +194,7 @@ void setup() {
   frames[1] = drawScreen2;
   frames[2] = drawScreen3;
   frames[3] = graphScreen;
+  frames[4] = drawClientsBlocked;
   ui.setOverlays(overlays, numberOfOverlays);
   
   // Inital UI takes care of initalising the display too.
@@ -279,8 +283,7 @@ void loop() {
     // Check status every 60 seconds
     ledOnOff(true);
     lastMinute = timeClient.getMinutes(); // reset the check value
-    piholeClient.getPiHoleData(PiHoleServer, PiHolePort);
-    piholeClient.getGraphData(PiHoleServer, PiHolePort);
+    updatePiholeData();
     ledOnOff(false);
   }
 
@@ -334,6 +337,7 @@ void handleUpdateConfig() {
 
   PiHoleServer = server.arg("piholeAddress");
   PiHolePort = server.arg("piholePort").toInt();
+  PiHoleApiKey = server.arg("apiToken");
   IS_24HOUR = server.hasArg("is24hour");
   INVERT_DISPLAY = server.hasArg("invDisp");
   USE_FLASH = server.hasArg("useFlash");
@@ -345,7 +349,7 @@ void handleUpdateConfig() {
   temp = server.arg("stationpassword");
   temp.toCharArray(www_password, sizeof(temp));
   writeSettings();
-  piholeClient.getPiHoleData(PiHoleServer, PiHolePort);
+  updatePiholeData();
   if (INVERT_DISPLAY != flipOld) {
     ui.init();
     if(INVERT_DISPLAY)     
@@ -386,14 +390,16 @@ void handleConfigure() {
   server.sendContent(html);
 
   html = "<script>function testPiHole(){var e=document.getElementById(\"PiHoleTest\"),t=document.getElementById(\"piholeAddress\").value,"
-         "n=document.getElementById(\"piholePort\").value;if(e.innerHTML=\"\",\"\"==t||\"\"==n)return e.innerHTML=\"* Address and Port are required\","
-         "void(e.style.background=\"\");var r=\"http://\"+t+\":\"+n;r+=\"/admin/api.php?summary\",window.open(r,\"_blank\").focus()}</script>";
+         "n=document.getElementById(\"piholePort\").value,api=document.getElementById(\"apiToken\").value;"
+         "if(e.innerHTML=\"\",\"\"==t||\"\"==n)return e.innerHTML=\"* Address and Port are required\","
+         "void(e.style.background=\"\");var r=\"http://\"+t+\":\"+n;r+=\"/admin/api.php?topClientsBlocked=3&auth=\"+api,window.open(r,\"_blank\").focus()}</script>";
   server.sendContent(html);
  
   String form = CHANGE_FORM;
   
   form.replace("%PIHOLEADDRESS%", PiHoleServer);
   form.replace("%PIHOLEPORT%", String(PiHolePort));
+  form.replace("%APITOKEN%", PiHoleApiKey);
 
   String is24hourChecked = "";
   if (IS_24HOUR) {
@@ -530,7 +536,7 @@ void displayMainStatus() {
   server.sendHeader("Expires", "-1");
   server.setContentLength(CONTENT_LENGTH_UNKNOWN);
   server.send(200, "text/html", "");
-  server.sendContent(String(getHeader(true)));
+  server.sendContent(String(getHeader(false)));
 
   String displayTime = timeClient.getAmPmHours() + ":" + timeClient.getMinutes() + ":" + timeClient.getSeconds() + " " + timeClient.getAmPm();
   if (IS_24HOUR) {
@@ -548,7 +554,12 @@ void displayMainStatus() {
             "Total Queries (" + piholeClient.getUniqueClients() + " clients): <b>" + piholeClient.getDnsQueriesToday() + "</b><br>"
             "Queries Blocked: <b>" + piholeClient.getAdsBlockedToday() + "</b><br>"
             "Percent Blocked: <b>" + piholeClient.getAdsPercentageToday() + "%</b><br>"
-            "Domains on Blocklist: <b>" + piholeClient.getDomainsBeingBlocked() + "</b><br>";
+            "Domains on Blocklist: <b>" + piholeClient.getDomainsBeingBlocked() + "</b><br>"
+            "Status: <b>" + piholeClient.getPiHoleStatus() + "</b><br>"
+            "Top 3 Clients Blocked: <br>";
+    for (int inx = 0; inx < 3; inx++) {
+      html += "&nbsp;&nbsp;&nbsp;&nbsp;<b>" + piholeClient.getTopClientBlocked(inx) + " (" + String(piholeClient.getTopClientBlockedCount(inx)) +")</b><br>";
+    }
   }
   
   html += "</p></div></div><hr>";
@@ -653,6 +664,16 @@ void graphScreen(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int
   }
 }
 
+void drawClientsBlocked(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y) {
+  display->setTextAlignment(TEXT_ALIGN_LEFT);
+  display->setFont(ArialMT_Plain_10);
+  int row = 0;
+  for (int inx = 0; inx < 3; inx++) {
+    display->drawString(10 + x, row + y, piholeClient.getTopClientBlocked(inx) + " (" + String(piholeClient.getTopClientBlockedCount(inx)) + ")");
+    row += 11;
+  }
+}
+
 String zeroPad(int value) {
   String rtnValue = String(value);
   if (value < 10) {
@@ -676,11 +697,14 @@ void drawHeaderOverlay(OLEDDisplay *display, OLEDDisplayUiState* state) {
     display->setFont(ArialMT_Plain_10);
     display->drawString(39, 54, ampm);
   }
-
   display->setFont(ArialMT_Plain_16);
   display->setTextAlignment(TEXT_ALIGN_LEFT);
-  String percent = String(piholeClient.getAdsPercentageToday()) + "%";
-  display->drawString(60, 48, percent);
+  if (piholeClient.getPiHoleStatus() == "disabled") {
+    display->drawString(66, 48, "OFF");
+  } else {
+    String percent = String(piholeClient.getAdsPercentageToday()) + "%";
+    display->drawString(60, 48, percent);
+  }
   
   // Draw indicator to show next update
   int updatePos = (piholeClient.getAdsPercentageToday().toFloat() / float(100)) * 128;
@@ -688,7 +712,7 @@ void drawHeaderOverlay(OLEDDisplay *display, OLEDDisplayUiState* state) {
   display->drawHorizontalLine(0, 43, updatePos);
   display->drawHorizontalLine(0, 44, updatePos);
   display->drawHorizontalLine(0, 45, updatePos);
-  
+
   drawRssi(display);
 }
 
@@ -750,6 +774,7 @@ void writeSettings() {
     f.println("UtcOffset=" + String(UtcOffset));
     f.println("piholeServer=" + PiHoleServer);
     f.println("piholePort=" + String(PiHolePort));
+    f.println("apiToken=" + PiHoleApiKey);
     f.println("refreshRate=" + String(minutesBetweenDataRefresh));
     f.println("themeColor=" + themeColor);
     f.println("IS_BASIC_AUTH=" + String(IS_BASIC_AUTH));
@@ -787,6 +812,11 @@ void readSettings() {
     if (line.indexOf("piholePort=") >= 0) {
       PiHolePort = line.substring(line.lastIndexOf("piholePort=") + 11).toInt();
       Serial.println("PiHolePort=" + String(PiHolePort));
+    }
+    if (line.indexOf("apiToken=") >= 0) {
+      PiHoleApiKey = line.substring(line.lastIndexOf("apiToken=") + 9);
+      PiHoleApiKey.trim();
+      Serial.println("PiHoleApiKey=" + PiHoleApiKey);
     }
     if (line.indexOf("refreshRate=") >= 0) {
       minutesBetweenDataRefresh = line.substring(line.lastIndexOf("refreshRate=") + 12).toInt();
@@ -827,8 +857,14 @@ void readSettings() {
     }
   }
   fr.close();
-  piholeClient.getPiHoleData(PiHoleServer, PiHolePort);
+  updatePiholeData();
   timeClient.setUtcOffset(UtcOffset);
+}
+
+void updatePiholeData() {
+  piholeClient.getPiHoleData(PiHoleServer, PiHolePort);
+  piholeClient.getGraphData(PiHoleServer, PiHolePort);
+  piholeClient.getTopClientsBlocked(PiHoleServer, PiHolePort, PiHoleApiKey);
 }
 
 int getMinutesFromLastRefresh() {

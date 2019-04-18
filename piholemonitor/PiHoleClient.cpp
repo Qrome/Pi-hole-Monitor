@@ -71,6 +71,44 @@ void PiHoleClient::getPiHoleData(String server, int port) {
   Serial.println();
 }
 
+void PiHoleClient::getTopClientsBlocked(String server, int port, String apiKey) {
+  errorMessage = "";
+  resetClientsBlocked();
+
+  if (apiKey == "") {
+    errorMessage = "Pi-hole API Key is required to view Top Clients Blocked.";
+    return;
+  }
+  
+  String apiGetData = "GET /admin/api.php?topClientsBlocked=3&auth=" + apiKey + " HTTP/1.1";
+  WiFiClient dataClient = getSubmitRequest(apiGetData, server, port);
+  if (errorMessage != "") {
+    Serial.println(errorMessage);
+    return;
+  }
+
+  const size_t bufferSize = JSON_OBJECT_SIZE(1) + JSON_OBJECT_SIZE(3) + 70;
+  DynamicJsonBuffer jsonBuffer(bufferSize);
+
+  // Parse JSON object
+  JsonObject& root = jsonBuffer.parseObject(dataClient);
+  if (!root.success()) {
+    errorMessage = "Data Parsing failed -- verify your Pi-hole API key.";
+    Serial.println(errorMessage);
+    return;
+  }
+
+  JsonObject& blocked = root["top_sources_blocked"];
+  int count = 0;
+  for (JsonPair p : blocked) {
+    blockedClients[count].clientAddress = (const char*)p.key;
+    blockedClients[count].blockedCount = p.value.as<int>();
+    Serial.println("Blocked Client (" + String(count+1) + "): " + blockedClients[count].clientAddress);
+    count++;
+  }
+  Serial.println();
+}
+
 void PiHoleClient::getGraphData(String server, int port) {
   
   HTTPClient http;
@@ -196,6 +234,13 @@ WiFiClient PiHoleClient::getSubmitRequest(String apiGetData, String myServer, in
   return dataClient;
 }
 
+void PiHoleClient::resetClientsBlocked() {
+  for (int inx = 0; inx < 3; inx++) {
+    blockedClients[inx].clientAddress = "";
+    blockedClients[inx].blockedCount = 0;
+  }
+}
+
 String PiHoleClient::getDomainsBeingBlocked() {
   return piHoleData.domains_being_blocked;
 }
@@ -251,4 +296,12 @@ int PiHoleClient::getBlockedCount() {
 
 int PiHoleClient::getBlockedHigh() {
   return blockedHigh;
+}
+
+String PiHoleClient::getTopClientBlocked(int index) {
+  return blockedClients[index].clientAddress;
+}
+  
+int PiHoleClient::getTopClientBlockedCount(int index) {
+  return blockedClients[index].blockedCount;
 }

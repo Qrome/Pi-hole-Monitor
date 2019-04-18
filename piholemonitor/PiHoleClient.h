@@ -31,13 +31,20 @@ class PiHoleClient {
 private:
 
   WiFiClient getSubmitRequest(String apiGetData, String myServer, int myPort);
+  void resetClientsBlocked();
   
-
   String errorMessage = "";
 
   int blocked[144] = {0};  
   int blockedCount = 0;
   int blockedHigh = 0;
+
+  typedef struct {
+    String clientAddress;
+    int blockedCount;
+  } ClientBlocked;
+
+  ClientBlocked blockedClients[3];
 
   typedef struct {
     String domains_being_blocked;
@@ -65,6 +72,7 @@ public:
   PiHoleClient();
   void getPiHoleData(String server, int port);
   void getGraphData(String server, int port);
+  void getTopClientsBlocked(String server, int port, String apiKey);
 
   String getDomainsBeingBlocked();
   String getDnsQueriesToday();
@@ -90,4 +98,7 @@ public:
   int *getBlockedAds();  
   int getBlockedCount();
   int getBlockedHigh();
+
+  String getTopClientBlocked(int index);
+  int getTopClientBlockedCount(int index);
 };
