@@ -95,17 +95,12 @@ it will become a **AP Hotspot** -- connect to it with your phone or computer and
 After connected to your WiFi network it will display the IP addressed assigned to it and that can be 
 used to open a browser to the Web Interface.  **Everything** can be configured there.
 
-<p align="center">
-  <img src="/images/shot_01.png" width="200"/>
-  <img src="/images/shot_02.png" width="200"/>
-  <img src="/images/shot_03.png" width="200"/>
-  <img src="/images/shot_04.png" width="200"/>
-</p>
-
 ## Donate or Tip
 Please do not feel obligated, but donations and tips are warmly welcomed.  I have added the donation button at the request of a few people that wanted to contribute and show appreciation.  Thank you, and enjoy the application and project.  
 
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=6VPMTLASLSKWE)
+
+Or -- you can buy me something from my Amazon Wishlist: https://www.amazon.com/hz/wishlist/ls/GINC2PHRNEY3  
 
 ## Contributors
 David Payne -- Principal developer and architect  
