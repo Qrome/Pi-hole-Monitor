@@ -50,7 +50,7 @@ SCL -> D5
 VCC -> 5V+  
 GND -> GND-  
 
-![Pi-hole Monitor Wire Diagram](/images/printer_monitor_wiring.jpg)  
+![Pi-hole Monitor Wire Diagram](/images/pi-hole-monitor-wiring.jpg)  
 
 ## 3D Printed Case by Qrome:  
 https://www.thingiverse.com/thing:2884823 -- for the 0.96" SSD1306 OLED Display  
