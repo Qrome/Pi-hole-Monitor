@@ -33,6 +33,7 @@ GND -> GND-
 ![Pi-hole Monitor Wire Diagram](/images/pi-hole-monitor-wiring.jpg)  
 
 ## 3D Printed Case by Qrome:  
+https://www.thingiverse.com/thing:3573903 -- new 0.96" SSD1306 OLED Display
 https://www.thingiverse.com/thing:2884823 -- for the 0.96" SSD1306 OLED Display  
 https://www.thingiverse.com/thing:2934049 -- for the 1.3" SSH1106 OLED Display
 
