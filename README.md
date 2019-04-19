@@ -112,5 +112,5 @@ Thanks for your contribution.
 
 ![Pi-hole Monitor](/images/pi-hole-monitor.jpg) 
 ![Pi-hole Monitor Blocked Traffic](/images/screens-02.jpg)  
-![Printer Monitor Screens](/images/screens-01.jpg)  
-![Printer Monitor Case](/images/case.jpg)
+![Pi=hole Monitor Screens](/images/screens-01.jpg)  
+![Pi-hole Monitor Case](/images/case.jpg)
