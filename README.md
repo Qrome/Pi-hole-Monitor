@@ -110,3 +110,6 @@ forking from master, committing modifications and then making a pulling requests
 for operating guide).  Detailed comments are encouraged.  Adding change log and your contact into file header is encouraged.
 Thanks for your contribution.
 
+![Pi-hole Monitor Blocked Traffic](/images/screens-02.jpg)  
+![Printer Monitor Screens](/images/screens-01.jpg)  
+![Printer Monitor Case](/images/case.jpg)
