@@ -1,6 +1,7 @@
 # Pi-hole Monitor
 ![Pi-hole Monitor](/images/pi-hole-monitor-banner.jpg)
 Pi-hole Monitor is a Wemos D1 Mini (ESP8266) with an I2C OLED display that is managed through a web interface and sits on your local network and will display statistics from your [Pi-hole](https://pi-hole.net/) server.  
+[Pi-hole Monitor Video](https://youtu.be/np6YMbA8KvI)
 
 ## Features:
 * Display Pi-Hole Statistics
