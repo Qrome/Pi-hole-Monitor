@@ -95,6 +95,12 @@ it will become a **AP Hotspot** -- connect to it with your phone or computer and
 After connected to your WiFi network it will display the IP addressed assigned to it and that can be 
 used to open a browser to the Web Interface.  **Everything** can be configured there.
 
+<p align="center">
+  <img src="/images/Screenshot_1.png" width="200"/>
+  <img src="/images/Screenshot_2.png" width="200"/>
+  <img src="/images/Screenshot_3.png" width="200"/>
+</p>
+
 ## Donate or Tip
 Please do not feel obligated, but donations and tips are warmly welcomed.  I have added the donation button at the request of a few people that wanted to contribute and show appreciation.  Thank you, and enjoy the application and project.  
 
