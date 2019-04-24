@@ -41,10 +41,16 @@ void PiHoleClient::getPiHoleData(String server, int port) {
   if (httpCode > 0) {
     response = http.getString();
     http.end();   //Close connection
+    if (httpCode != 200) {
+      // Bad Response Code
+      errorMessage = "Error response (" + String(httpCode) + "): " + response;
+      Serial.println(errorMessage);
+      return;  
+    }
     Serial.println("Response Code: " + String(httpCode));
     Serial.println("Response: " + response);
   } else {
-    errorMessage = "Failed to get data: " + apiGetData;
+    errorMessage = "Failed to connect and get data: " + apiGetData;
     Serial.println(errorMessage);
     return;
   }
@@ -102,6 +108,12 @@ void PiHoleClient::getTopClientsBlocked(String server, int port, String apiKey) 
   if (httpCode > 0) {
     response = http.getString();
     http.end();   //Close connection
+    if (httpCode != 200) {
+      // Bad Response Code
+      errorMessage = "Error response (" + String(httpCode) + "): " + response;
+      Serial.println(errorMessage);
+      return;  
+    }
     Serial.println("Response Code: " + String(httpCode));
     Serial.println("Response: " + response);
   } else {
@@ -146,6 +158,12 @@ void PiHoleClient::getGraphData(String server, int port) {
   if (httpCode > 0) {
     response = http.getString();
     http.end();   //Close connection
+    if (httpCode != 200) {
+      // Bad Response Code
+      errorMessage = "Error response (" + String(httpCode) + "): " + response;
+      Serial.println(errorMessage);
+      return;  
+    }
     Serial.println("Response Code: " + String(httpCode));
     //Serial.println("Response: " + response);
   } else {
