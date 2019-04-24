@@ -148,6 +148,7 @@ void PiHoleClient::getGraphData(String server, int port) {
     
   String apiGetData = "http://" + server + ":" + String(port) + "/admin/api.php?overTimeData10mins";
 
+  resetBlockedGraphData();
   errorMessage = "";
   String response = "";
   Serial.println("Sending: " + apiGetData);
@@ -211,6 +212,14 @@ void PiHoleClient::resetClientsBlocked() {
     blockedClients[inx].clientAddress = "";
     blockedClients[inx].blockedCount = 0;
   }
+}
+
+void PiHoleClient::resetBlockedGraphData() {
+  for (int inx = 0; inx < 144; inx++) {
+    blocked[inx] = 0;
+  }
+  blockedCount = 0;
+  blockedHigh = 0;
 }
 
 String PiHoleClient::getDomainsBeingBlocked() {
