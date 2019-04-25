@@ -32,6 +32,7 @@ private:
 
   WiFiClient getSubmitRequest(String apiGetData, String myServer, int myPort);
   void resetClientsBlocked();
+  void resetBlockedGraphData();
   
   String errorMessage = "";
 

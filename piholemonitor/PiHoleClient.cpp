@@ -30,10 +30,27 @@ PiHoleClient::PiHoleClient() {
 void PiHoleClient::getPiHoleData(String server, int port) {
 
   errorMessage = "";
-  
-  String apiGetData = "GET /admin/api.php?summary HTTP/1.1";
-  WiFiClient dataClient = getSubmitRequest(apiGetData, server, port);
-  if (errorMessage != "") {
+  String response = "";
+
+  String apiGetData = "http://" + server + ":" + String(port) + "/admin/api.php?summary";
+  Serial.println("Sending: " + apiGetData);
+  HTTPClient http;  //Object of class HTTPClient
+  http.begin(apiGetData);// get the result
+  int httpCode = http.GET();
+  //Check the returning code
+  if (httpCode > 0) {
+    response = http.getString();
+    http.end();   //Close connection
+    if (httpCode != 200) {
+      // Bad Response Code
+      errorMessage = "Error response (" + String(httpCode) + "): " + response;
+      Serial.println(errorMessage);
+      return;  
+    }
+    Serial.println("Response Code: " + String(httpCode));
+    Serial.println("Response: " + response);
+  } else {
+    errorMessage = "Failed to connect and get data: " + apiGetData;
     Serial.println(errorMessage);
     return;
   }
@@ -42,9 +59,9 @@ void PiHoleClient::getPiHoleData(String server, int port) {
   DynamicJsonBuffer jsonBuffer(bufferSize);
 
   // Parse JSON object
-  JsonObject& root = jsonBuffer.parseObject(dataClient);
+  JsonObject& root = jsonBuffer.parseObject(response);
   if (!root.success()) {
-    errorMessage = "Data Summary Parsing failed: http://" + String(server) + ":" + String(port) + "/admin/api.php?summary";
+    errorMessage = "Data Summary Parsing failed: " + apiGetData;
     Serial.println(errorMessage);
     return;
   }
@@ -79,10 +96,28 @@ void PiHoleClient::getTopClientsBlocked(String server, int port, String apiKey) 
     errorMessage = "Pi-hole API Key is required to view Top Clients Blocked.";
     return;
   }
-  
-  String apiGetData = "GET /admin/api.php?topClientsBlocked=3&auth=" + apiKey + " HTTP/1.1";
-  WiFiClient dataClient = getSubmitRequest(apiGetData, server, port);
-  if (errorMessage != "") {
+
+  String response = "";
+
+  String apiGetData = "http://" + server + ":" + String(port) + "/admin/api.php?topClientsBlocked=3&auth=" + apiKey;
+  Serial.println("Sending: " + apiGetData);
+  HTTPClient http;  //Object of class HTTPClient
+  http.begin(apiGetData);// get the result
+  int httpCode = http.GET();
+  //Check the returning code
+  if (httpCode > 0) {
+    response = http.getString();
+    http.end();   //Close connection
+    if (httpCode != 200) {
+      // Bad Response Code
+      errorMessage = "Error response (" + String(httpCode) + "): " + response;
+      Serial.println(errorMessage);
+      return;  
+    }
+    Serial.println("Response Code: " + String(httpCode));
+    Serial.println("Response: " + response);
+  } else {
+    errorMessage = "Failed to get data: " + apiGetData;
     Serial.println(errorMessage);
     return;
   }
@@ -91,7 +126,7 @@ void PiHoleClient::getTopClientsBlocked(String server, int port, String apiKey) 
   DynamicJsonBuffer jsonBuffer(bufferSize);
 
   // Parse JSON object
-  JsonObject& root = jsonBuffer.parseObject(dataClient);
+  JsonObject& root = jsonBuffer.parseObject(response);
   if (!root.success()) {
     errorMessage = "Data Parsing failed -- verify your Pi-hole API key.";
     Serial.println(errorMessage);
@@ -103,75 +138,54 @@ void PiHoleClient::getTopClientsBlocked(String server, int port, String apiKey) 
   for (JsonPair p : blocked) {
     blockedClients[count].clientAddress = (const char*)p.key;
     blockedClients[count].blockedCount = p.value.as<int>();
-    Serial.println("Blocked Client (" + String(count+1) + "): " + blockedClients[count].clientAddress);
+    Serial.println("Blocked Client " + String(count+1) + ": " + blockedClients[count].clientAddress + " (" + String(blockedClients[count].blockedCount) + ")");
     count++;
   }
   Serial.println();
 }
 
 void PiHoleClient::getGraphData(String server, int port) {
-  
-  HTTPClient http;
-  
+    
   String apiGetData = "http://" + server + ":" + String(port) + "/admin/api.php?overTimeData10mins";
 
-  Serial.println("Getting Pi-Hole Graph Data");
-  Serial.println(apiGetData);
-  http.begin(apiGetData);
-  int httpCode = http.GET();
-
-  String result = "";
+  resetBlockedGraphData();
   errorMessage = "";
-
-  if (httpCode > 0) {  // checks for connection
-    Serial.printf("[HTTP] GET... code: %d\n", httpCode);
-    if(httpCode == HTTP_CODE_OK) {
-      // get length of document (is -1 when Server sends no Content-Length header)
-      int len = http.getSize();
-      // create buffer for read
-      char buff[128] = { 0 };
-      // get tcp stream
-      WiFiClient * stream = http.getStreamPtr();
-      // read all data from server
-      Serial.println("Start reading...");
-      while(http.connected() && (len > 0 || len == -1)) {
-        // get available data size
-        size_t size = stream->available();
-        if(size) {
-          // read up to 128 byte
-          int c = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
-          for(int i=0;i<c;i++) {
-            result += buff[i];
-          }
-            
-          if(len > 0)
-            len -= c;
-          }
-        delay(1);
-      }
+  String response = "";
+  Serial.println("Sending: " + apiGetData);
+  HTTPClient http;  //Object of class HTTPClient
+  http.begin(apiGetData);// get the result
+  int httpCode = http.GET();
+  //Check the returning code
+  if (httpCode > 0) {
+    response = http.getString();
+    http.end();   //Close connection
+    if (httpCode != 200) {
+      // Bad Response Code
+      errorMessage = "Error response (" + String(httpCode) + "): " + response;
+      Serial.println(errorMessage);
+      return;  
     }
-    http.end();
+    Serial.println("Response Code: " + String(httpCode));
+    //Serial.println("Response: " + response);
   } else {
-    errorMessage = "Connection for Pi-Hole data failed: " + String(apiGetData);
-    Serial.println(errorMessage); //error message if no client connect
-    Serial.println();
+    errorMessage = "Failed to get data: " + apiGetData;
+    Serial.println(errorMessage);
     return;
   }
 
   // Remove half of the stuff -- it is too large to parse
-  result = result.substring(result.indexOf("\"ads_over_time"));
-  result = "{" + result;
+  response = response.substring(response.indexOf("\"ads_over_time"));
+  response = "{" + response;
+  Serial.println("Modified Response: " + response);
 
-  //Serial.println("Modified: " + result);
-
-  char jsonArray [result.length()+1];
-  result.toCharArray(jsonArray,sizeof(jsonArray));
+  char jsonArray [response.length()+1];
+  response.toCharArray(jsonArray, sizeof(jsonArray));
   //jsonArray[result.length() + 1] = '\0';
   DynamicJsonBuffer json_buf;
   JsonObject& root = json_buf.parseObject(jsonArray);
 
   if (!root.success()) {
-    errorMessage = "Data Parsing failed: http://" + String(server) + ":" + String(port) + "/admin/api.php?overTimeData10mins";
+    errorMessage = "Data Parsing failed: " + apiGetData;
     Serial.println(errorMessage);
     return;
   }
@@ -190,48 +204,7 @@ void PiHoleClient::getGraphData(String server, int port) {
 
   Serial.println("High Value: " + String(blockedHigh));
   Serial.println("Count: " + String(blockedCount));
-  
-}
-
-WiFiClient PiHoleClient::getSubmitRequest(String apiGetData, String myServer, int myPort) {
-  WiFiClient dataClient;
-  dataClient.setTimeout(5000);
-
-  Serial.println("Getting Data via GET");
-  Serial.println(apiGetData);
-  errorMessage = "";
-  if (dataClient.connect(myServer, myPort)) {  //starts client connection, checks for connection
-    dataClient.println(apiGetData);
-    dataClient.println("Host: " + String(myServer) + ":" + String(myPort));
-    dataClient.println("User-Agent: ArduinoWiFi/1.1");
-    dataClient.println("Connection: close");
-    if (dataClient.println() == 0) {
-      errorMessage = "Connection to " + String(myServer) + ":" + String(myPort) + " failed.";
-      //resetPrintData();
-      return dataClient;
-    }
-  } 
-  else {
-    errorMessage = "Connection failed: " + String(myServer) + ":" + String(myPort);
-    //resetPrintData();
-    return dataClient;
-  }
-
-  // Check HTTP status
-  char status[32] = {0};
-  dataClient.readBytesUntil('\r', status, sizeof(status));
-  if (strcmp(status, "HTTP/1.1 200 OK") != 0 && strcmp(status, "HTTP/1.1 409 CONFLICT") != 0) {
-    errorMessage = "Unexpected response: " + String(status);
-    return dataClient;
-  }
-
-  // Skip HTTP headers
-  char endOfHeaders[] = "\r\n\r\n";
-  if (!dataClient.find(endOfHeaders)) {
-    errorMessage = "Invalid response from " + String(myServer) + ":" + String(myPort);
-  }
-
-  return dataClient;
+  Serial.println();
 }
 
 void PiHoleClient::resetClientsBlocked() {
@@ -239,6 +212,14 @@ void PiHoleClient::resetClientsBlocked() {
     blockedClients[inx].clientAddress = "";
     blockedClients[inx].blockedCount = 0;
   }
+}
+
+void PiHoleClient::resetBlockedGraphData() {
+  for (int inx = 0; inx < 144; inx++) {
+    blocked[inx] = 0;
+  }
+  blockedCount = 0;
+  blockedHigh = 0;
 }
 
 String PiHoleClient::getDomainsBeingBlocked() {
