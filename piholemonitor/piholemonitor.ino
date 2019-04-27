@@ -27,7 +27,7 @@ SOFTWARE.
 
 #include "Settings.h"
 
-#define VERSION "1.1"
+#define VERSION "1.2"
 
 #define HOSTNAME "PiHoleMon-" 
 #define CONFIG "/piholeconf.txt"
@@ -654,7 +654,11 @@ void graphScreen(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int
   int high = piholeClient.getBlockedHigh();
   int row = 127;
   int yval = 0;
-  for (int inx = count; inx >= (count - 128); inx--) {
+  int totalRows = count - 128;
+  if (totalRows < 0) {
+    totalRows = 0;
+  }
+  for (int inx = count-1; inx >= totalRows; inx--) {
     yval = map(piholeClient.getBlockedAds()[inx], high, 0, 0, 40);
     display->drawLine(row + x, yval + y, row + x, 39 + y);
     if (row == 0) {
