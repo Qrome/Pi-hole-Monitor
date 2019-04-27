@@ -27,7 +27,7 @@ SOFTWARE.
 
 #include "Settings.h"
 
-#define VERSION "1.2"
+#define VERSION "1.3"
 
 #define HOSTNAME "PiHoleMon-" 
 #define CONFIG "/piholeconf.txt"
@@ -89,14 +89,14 @@ int8_t getWifiQuality();
 ESP8266WebServer server(WEBSERVER_PORT);
 ESP8266HTTPUpdateServer serverUpdater;
 
-String WEB_ACTIONS =  "<a class='w3-bar-item w3-button' href='/'><i class='fa fa-home'></i> Home</a>"
+static const char WEB_ACTIONS[] PROGMEM =  "<a class='w3-bar-item w3-button' href='/'><i class='fa fa-home'></i> Home</a>"
                       "<a class='w3-bar-item w3-button' href='/configure'><i class='fa fa-cog'></i> Configure</a>"
                       "<a class='w3-bar-item w3-button' href='/systemreset' onclick='return confirm(\"Do you want to reset to default settings?\")'><i class='fa fa-undo'></i> Reset Settings</a>"
                       "<a class='w3-bar-item w3-button' href='/forgetwifi' onclick='return confirm(\"Do you want to forget to WiFi connection?\")'><i class='fa fa-wifi'></i> Forget WiFi</a>"
                       "<a class='w3-bar-item w3-button' href='/update'><i class='fa fa-wrench'></i> Firmware Update</a>"
                       "<a class='w3-bar-item w3-button' href='https://github.com/Qrome' target='_blank'><i class='fa fa-question-circle'></i> About</a>";
 
-String CHANGE_FORM =  "<form class='w3-container' action='/updateconfig' method='get'><h2>Station Config:</h2>"
+static const char CHANGE_FORM[] PROGMEM =  "<form class='w3-container' action='/updateconfig' method='get'><h2>Station Config:</h2>"
                       "<p><label>Pi-hole Address (do not include http://)</label><input class='w3-input w3-border w3-margin-bottom' type='text' name='piholeAddress' id='piholeAddress' value='%PIHOLEADDRESS%' maxlength='60'></p>"
                       "<p><label>Pi-hole Port</label><input class='w3-input w3-border w3-margin-bottom' type='text' name='piholePort' id='piholePort' value='%PIHOLEPORT%' maxlength='5'  onkeypress='return isNumberKey(event)'></p>"
                       "<p><label>Pi-hole API Token (from Pi-hole &rarr; Settings &rarr; API/Web interface)</label>"
@@ -106,14 +106,14 @@ String CHANGE_FORM =  "<form class='w3-container' action='/updateconfig' method=
                       "<p><input name='invDisp' class='w3-check w3-margin-top' type='checkbox' %IS_INVDISP_CHECKED%> Flip display orientation</p>"
                       "<p>Clock Sync / Weather Refresh (minutes) <select class='w3-option w3-padding' name='refresh'>%OPTIONS%</select></p>";
                             
-String THEME_FORM =   "<p>Theme Color <select class='w3-option w3-padding' name='theme'>%THEME_OPTIONS%</select></p>"
+static const char THEME_FORM[] PROGMEM =   "<p>Theme Color <select class='w3-option w3-padding' name='theme'>%THEME_OPTIONS%</select></p>"
                       "<p><label>UTC Time Offset</label><input class='w3-input w3-border w3-margin-bottom' type='text' name='utcoffset' value='%UTCOFFSET%' maxlength='12'></p><hr>"
                       "<p><input name='isBasicAuth' class='w3-check w3-margin-top' type='checkbox' %IS_BASICAUTH_CHECKED%> Use Security Credentials for Configuration Changes</p>"
                       "<p><label>User ID (for this interface)</label><input class='w3-input w3-border w3-margin-bottom' type='text' name='userid' value='%USERID%' maxlength='20'></p>"
                       "<p><label>Password </label><input class='w3-input w3-border w3-margin-bottom' type='password' name='stationpassword' value='%STATIONPASSWORD%'></p>"
                       "<button class='w3-button w3-block w3-grey w3-section w3-padding' type='submit'>Save</button></form>";
 
-String COLOR_THEMES = "<option>red</option>"
+static const char COLOR_THEMES[] PROGMEM = "<option>red</option>"
                       "<option>pink</option>"
                       "<option>purple</option>"
                       "<option>deep-purple</option>"
@@ -395,7 +395,7 @@ void handleConfigure() {
          "void(e.style.background=\"\");var r=\"http://\"+t+\":\"+n;r+=\"/admin/api.php?topClientsBlocked=3&auth=\"+api,window.open(r,\"_blank\").focus()}</script>";
   server.sendContent(html);
  
-  String form = CHANGE_FORM;
+  String form = (const char*)CHANGE_FORM;
   
   form.replace("%PIHOLEADDRESS%", PiHoleServer);
   form.replace("%PIHOLEPORT%", String(PiHolePort));
@@ -423,9 +423,9 @@ void handleConfigure() {
 
   server.sendContent(form);
 
-  form = THEME_FORM;
+  form = (const char*)THEME_FORM;
   
-  String themeOptions = COLOR_THEMES;
+  String themeOptions = (const char*)COLOR_THEMES;
   themeOptions.replace(">"+String(themeColor)+"<", " selected>"+String(themeColor)+"<");
   form.replace("%THEME_OPTIONS%", themeOptions);
   form.replace("%UTCOFFSET%", String(UtcOffset));
@@ -480,7 +480,7 @@ String getHeader() {
 }
 
 String getHeader(boolean refresh) {
-  String menu = WEB_ACTIONS;
+  String menu = (const char*)WEB_ACTIONS;
 
   String html = "<!DOCTYPE HTML>";
   html += "<html><head><title>Pi-hole Monitor</title><link rel='icon' href='data:;base64,='>";
