@@ -55,6 +55,7 @@ SOFTWARE.
 String PiHoleServer = "";   // IP or Address of your Pi-Hole Server (DO NOT include http://)
 int PiHolePort = 80;        // the port you are running (usually 80);
 String PiHoleApiKey = "";   // Optional -- only needed to see top blocked clients
+boolean SHOW_CLIENTS = true; // true = display top 3 blocked clients on your network
 
 // Webserver Settings for this monitoring device
 const int WEBSERVER_PORT = 80; // The port you can access this device on over HTTP

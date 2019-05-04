@@ -9,7 +9,7 @@ Pi-hole Monitor is a Wemos D1 Mini (ESP8266) with an I2C OLED display that is ma
 * Total Clients
 * Percentage Blocked
 * Blocked Ads Graph from the last 21.33 hours of data (only 128 lines to show 10 min incriments)
-* Top 3 Clients Blocked
+* Option to show Top 3 Clients Blocked
 * Option to display 24 hour or AM/PM style clock
 * Sample rate is every 60 seconds
 * Fully configurable from the web interface (not required to edit Settings.h)
