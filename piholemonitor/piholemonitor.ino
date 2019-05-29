@@ -400,10 +400,10 @@ void handleConfigure() {
   html = getHeader();
   server.sendContent(html);
 
-  html = (const char*)API_TEST;
+  html = FPSTR(API_TEST);
   server.sendContent(html);
  
-  String form = (const char*)CHANGE_FORM;
+  String form = FPSTR(CHANGE_FORM);
   
   form.replace("%PIHOLEADDRESS%", PiHoleServer);
   form.replace("%PIHOLEPORT%", String(PiHolePort));
@@ -436,9 +436,9 @@ void handleConfigure() {
 
   server.sendContent(form);
 
-  form = (const char*)THEME_FORM;
+  form = FPSTR(THEME_FORM);
   
-  String themeOptions = (const char*)COLOR_THEMES;
+  String themeOptions = FPSTR(COLOR_THEMES);
   themeOptions.replace(">"+String(themeColor)+"<", " selected>"+String(themeColor)+"<");
   form.replace("%THEME_OPTIONS%", themeOptions);
   form.replace("%UTCOFFSET%", String(UtcOffset));
@@ -493,7 +493,7 @@ String getHeader() {
 }
 
 String getHeader(boolean refresh) {
-  String menu = (const char*)WEB_ACTIONS;
+  String menu = FPSTR(WEB_ACTIONS);
 
   String html = "<!DOCTYPE HTML>";
   html += "<html><head><title>Pi-hole Monitor</title><link rel='icon' href='data:;base64,='>";
