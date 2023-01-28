@@ -27,7 +27,7 @@ SOFTWARE.
 
 #include "Settings.h"
 
-#define VERSION "1.4"
+#define VERSION "1.5"
 
 #define HOSTNAME "PiHoleMon-" 
 #define CONFIG "/piholeconf.txt"
@@ -100,7 +100,6 @@ static const char WEB_ACTIONS[] PROGMEM =  "<a class='w3-bar-item w3-button' hre
 static const char CHANGE_FORM[] PROGMEM =  "<form class='w3-container' action='/updateconfig' method='get'><h2>Station Config:</h2>"
                       "<p><label>Pi-hole Address (do not include http://)</label><input class='w3-input w3-border w3-margin-bottom' type='text' name='piholeAddress' id='piholeAddress' value='%PIHOLEADDRESS%' maxlength='60'></p>"
                       "<p><label>Pi-hole Port</label><input class='w3-input w3-border w3-margin-bottom' type='text' name='piholePort' id='piholePort' value='%PIHOLEPORT%' maxlength='5'  onkeypress='return isNumberKey(event)'></p>"
-                      "<input type='button' value='Test Connection for Summary' onclick='testPiHole()'>"
                       "<p><input name='showclients' id='showclients' onclick='showHideApi()' class='w3-check w3-margin-top' type='checkbox' %SHOW_CLIENTS%> Show the top 3 blocked client addresses</p>"
                       "<div id='apiblock'><p><label>Pi-hole API Token (from Pi-hole &rarr; Settings &rarr; API/Web interface)</label>"
                       "<input class='w3-input w3-border w3-margin-bottom' type='text' name='apiToken' id='apiToken' value='%APITOKEN%' maxlength='65'></p>"
@@ -120,11 +119,7 @@ static const char THEME_FORM[] PROGMEM =   "<p>Theme Color <select class='w3-opt
 static const char API_TEST[] PROGMEM = "<script>function testPiHoleKey(){var e=document.getElementById(\"PiHoleTest\"),t=document.getElementById(\"piholeAddress\").value,"
                       "n=document.getElementById(\"piholePort\").value,api=document.getElementById(\"apiToken\").value;"
                       "if(e.innerHTML=\"\",\"\"==t||\"\"==n)return e.innerHTML=\"* Address and Port are required\","
-                      "void(e.style.background=\"\");var r=\"http://\"+t+\":\"+n;r+=\"/admin/api.php?topClientsBlocked=3&auth=\"+api,window.open(r,\"_blank\").focus()}"
-                      "function testPiHole() { var e = document.getElementById(\"PiHoleTest\"), t = document.getElementById(\"piholeAddress\").value, "
-                      "n = document.getElementById(\"piholePort\").value; "
-                      "if (e.innerHTML = \"\", \"\" == t || \"\" == n) return e.innerHTML = \"* Address and Port are required\", "
-                      "void (e.style.background = \"\"); var r = \"http://\" + t + \":\" + n; r += \"/admin/api.php?summary\", window.open(r, \"_blank\").focus() }"
+                      "void(e.style.background=\"\");var r=\"http://\"+t+\":\"+n;r+=\"/admin/api.php?summary=3&auth=\"+api,window.open(r,\"_blank\").focus()}"
                       "function showHideApi(){var e=document.getElementById(\"apiblock\");document.getElementById(\"showclients\").checked?e.style.display=\"\":e.style.display=\"none\"}</script>";
 
 
@@ -898,8 +893,8 @@ void readSettings() {
 }
 
 void updatePiholeData() {
-  piholeClient.getPiHoleData(PiHoleServer, PiHolePort);
-  piholeClient.getGraphData(PiHoleServer, PiHolePort);
+  piholeClient.getPiHoleData(PiHoleServer, PiHolePort, PiHoleApiKey);
+  piholeClient.getGraphData(PiHoleServer, PiHolePort, PiHoleApiKey);
   if (SHOW_CLIENTS) {
     piholeClient.getTopClientsBlocked(PiHoleServer, PiHolePort, PiHoleApiKey);
   }

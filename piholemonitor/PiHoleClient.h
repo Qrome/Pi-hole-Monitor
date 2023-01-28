@@ -71,8 +71,8 @@ private:
   
 public:
   PiHoleClient();
-  void getPiHoleData(String server, int port);
-  void getGraphData(String server, int port);
+  void getPiHoleData(String server, int port, String apiKey);
+  void getGraphData(String server, int port, String apiKey);
   void getTopClientsBlocked(String server, int port, String apiKey);
 
   String getDomainsBeingBlocked();
